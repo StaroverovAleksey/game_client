@@ -1,0 +1,43 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development webpack --mode development",
+    "client:install": "npm install --prefix client",
+    "build": "cross-env NODE_ENV=production webpack --mode production",
+    "watch": "webpack --mode development --watch",
+    "start": "cross-env NODE_ENV=development webpack serve --mode development"
+  },
+  "author": "Staroverov A",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.15.5",
+    "@babel/preset-env": "^7.15.4",
+    "@babel/preset-react": "^7.14.5",
+    "babel-loader": "^8.2.2",
+    "clean-webpack-plugin": "^4.0.0",
+    "copy-webpack-plugin": "^9.0.1",
+    "cross-env": "^7.0.3",
+    "css-loader": "^6.2.0",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.3.2",
+    "style-loader": "^3.2.1",
+    "webpack": "^5.52.0",
+    "webpack-cli": "^4.8.0",
+    "webpack-dev-server": "^4.1.1"
+  },
+  "dependencies": {
+    "@babel/polyfill": "^7.12.1",
+    "@react-three/drei": "^7.14.2",
+    "@react-three/fiber": "^7.0.15",
+    "normalize.css": "^8.0.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-redux": "^7.2.5",
+    "redux": "^4.1.1",
+    "styled-components": "^5.3.1",
+    "three": "^0.133.0"
+  }
+}
