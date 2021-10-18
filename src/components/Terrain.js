@@ -6,7 +6,11 @@ export default function Model({clickCallback, refCallback}) {
     const mesh1 = gltf.scene.children[0].clone();
     const ref = useRef();
 
-    const [state, setState] = useState({mouseDownX: 0, mouseDownY: 0});
+    const [state, setState] = useState({
+        mouseDownX: 0,
+        mouseDownY: 0,
+        mouseDownTime : 0
+    });
 
     useEffect(() => {
         refCallback(ref);
@@ -14,16 +18,24 @@ export default function Model({clickCallback, refCallback}) {
 
     const onMouseDownHandler = (event) => {
         event.stopPropagation();
-        setState({mouseDownX: event.clientX, mouseDownY: event.clientY});
+        setState({
+            mouseDownX: event.clientX,
+            mouseDownY: event.clientY,
+            mouseDownTime: new Date()
+        });
     }
 
     const onMouseUpHandler = (event) => {
         event.stopPropagation();
-        const {mouseDownX, mouseDownY} = state;
-        if (mouseDownX === event.clientX && mouseDownY === event.clientY) {
+        const {mouseDownX, mouseDownY, mouseDownTime} = state;
+        if ((new Date() - mouseDownTime < 150) || (mouseDownX === event.clientX && mouseDownY === event.clientY)) {
             clickCallback(event.point.x, event.point.y, event.point.z);
         }
-        setState({mouseDownX: 0, mouseDownY: 0});
+        setState({
+            mouseDownX: 0,
+            mouseDownY: 0,
+            mouseDownTime: 0
+        });
     }
 
     return (
@@ -32,6 +44,7 @@ export default function Model({clickCallback, refCallback}) {
                 geometry={mesh1.geometry}
                 material={mesh1.material}
                 position={mesh1.position}
+                rotation={mesh1.rotation}
                 onPointerUp={onMouseUpHandler}
                 onPointerDown={onMouseDownHandler}
             />

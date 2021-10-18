@@ -19,18 +19,6 @@ export default class Hub extends Component {
         }
     }
 
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        if (prevState.avatar.y !== this.state.avatar.y) {
-            setInterval(() => {
-                const {x, y, z} = this.state.avatar;
-                const avatar = {x: x - 0.05, y, z: z - 0.05};
-                console.log(avatar);
-                this.setState({avatar})
-            }, 50);
-        }
-
-    }
-
     render() {
         const {terrainRef} = this.state;
         const {x: avatarX, y: avatarY, z: avatarZ} = this.state.avatar;
@@ -39,7 +27,7 @@ export default class Hub extends Component {
             <>
                 {/***Камера*/}
                 <PerspectiveCamera
-                    position={[200, 200, 200]}
+                    position={[0, 100, 55]}
                     near={0.01}
                     far={10000}
                     makeDefault
@@ -51,10 +39,16 @@ export default class Hub extends Component {
                 <directionalLight position={[10, 10, 10]} color={0xffffff} intensity={1} />
 
                 {/***Персонаж*/}
-                <Avatar avatarX={avatarX} avatarZ={avatarZ} terrain={terrainRef} callback={this.avatarCallback}/>
+                <Avatar
+                    terrain={terrainRef}
+                    callback={this.avatarCallback}
+                    pointerVisible={visible}
+                    pointerX={pointerX}
+                    pointerZ={pointerZ}
+                />
 
                 {/***Указатель пути для персонажа*/}
-                <Pointer x={pointerX} y={pointerY} z={pointerZ} visible={visible}/>
+                <Pointer pointerX={pointerX} pointerY={pointerY} pointerZ={pointerZ} pointerVisible={visible}/>
 
                 {/***Террейн*/}
                 <Terrain clickCallback={this.terrainClickCallback} refCallback={this.terrainRefCallback}/>
@@ -73,8 +67,7 @@ export default class Hub extends Component {
         this.setState({terrainRef: ref});
     }
 
-    avatarCallback = (y) => {
-        const {x, z} = this.state.avatar;
+    avatarCallback = (x, y, z) => {
         this.setState({avatar: {x, y, z}});
     }
 
