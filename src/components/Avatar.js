@@ -1,7 +1,17 @@
 import React, {useEffect, useRef, useState} from 'react'
 import * as THREE from "three";
 import {useFrame} from "@react-three/fiber";
-import {AVATAR_DEPTH, AVATAR_HEIGHT, AVATAR_START_X, AVATAR_START_Z, AVATAR_WIDTH} from "../utils/constants";
+import {
+    AVATAR_DEPTH,
+    AVATAR_HEIGHT,
+    AVATAR_SPEED,
+    AVATAR_START_X,
+    AVATAR_START_Z,
+    AVATAR_WIDTH
+} from "../utils/constants";
+
+const geometry = <boxBufferGeometry args={[AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_DEPTH]} />;
+const material = <meshStandardMaterial color={'red'} />;
 
 
 export default function Avatar({terrain, callback, pointerVisible, pointerX, pointerZ}) {
@@ -10,7 +20,7 @@ export default function Avatar({terrain, callback, pointerVisible, pointerX, poi
     const ref = useRef();
     const [state, setState] = useState({
         startY: 0,
-        moveRatio: 1
+        moveRatio: 0
     });
 
     /***Первоначальное определение позиции Y на старте*/
@@ -24,32 +34,39 @@ export default function Avatar({terrain, callback, pointerVisible, pointerX, poi
         );
     }, [terrain]);
 
-    /***Первоначальное определение позиции на старте*/
+    /***Определение соотношения */
     useEffect(() => {
         if (pointerX && pointerZ) {
             const {x, z} = ref.current.position;
+            const [normX, normZ] = normalize(pointerX - x, pointerZ - z);
+            //console.log(normX, normZ)
             setState((prevState) => ({
-                ...prevState, moveRatio: (pointerX - x) / (pointerZ - z)
+                ...prevState, moveRatio: [normX, normZ]
             }));
         }
     }, [pointerX, pointerZ]);
 
     useFrame((rootState, time) => {
         const {moveRatio} = state;
-        const {x, z} = ref.current.position;
-        const deltaX = pointerX - x;
-        const deltaZ = pointerZ - z;
 
         if (pointerVisible && moveRatio) {
-            console.log(deltaX, deltaZ, moveRatio);
-            ref.current.position.x += time * moveRatio;
-            ref.current.position.z += time;
-            //ref.current.position.z += elapsedTime * 0.1;
+            ref.current.position.x += time * moveRatio[0] * AVATAR_SPEED;
+            ref.current.position.z += time * moveRatio[1] * AVATAR_SPEED;
             ref.current.position.y = getZPosition() + AVATAR_HEIGHT / 2
         }
     });
 
-
+    const normalize = (x, z) => {
+        const absX = Math.abs(x);
+        const absZ = Math.abs(z);
+        const signX = Math.sign(x);
+        const signZ = Math.sign(z);
+        if (Math.abs(x) <= Math.abs(z)) {
+            return [absX / absZ * signX, signZ]
+        } else {
+            return [signX, absZ / absX * signZ];
+        }
+    }
 
 
     const getZPosition = () => {
@@ -73,9 +90,8 @@ export default function Avatar({terrain, callback, pointerVisible, pointerX, poi
             ref={ref}
             position={[AVATAR_START_X, state.startY + AVATAR_HEIGHT / 2, AVATAR_START_Z]}
         >
-            <boxBufferGeometry args={[AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_DEPTH]} />
-            <meshStandardMaterial color={'red'} />
-            <axesHelper args={[20, 20, 20]} />
+            {geometry}
+            {material}
         </mesh>
     )
 }
