@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react'
 import { useGLTF } from '@react-three/drei'
 
-export default function Model({clickCallback, refCallback}) {
+export default function Terrain({callback}) {
     const gltf = useGLTF('terrain/island.gltf');
     const mesh1 = gltf.scene.children[0].clone();
     const ref = useRef();
@@ -13,7 +13,7 @@ export default function Model({clickCallback, refCallback}) {
     });
 
     useEffect(() => {
-        refCallback(ref);
+        callback('terrainRef', ref);
     }, [ref]);
 
     const onMouseDownHandler = (event) => {
@@ -29,7 +29,8 @@ export default function Model({clickCallback, refCallback}) {
         event.stopPropagation();
         const {mouseDownX, mouseDownY, mouseDownTime} = state;
         if ((new Date() - mouseDownTime < 150) || (mouseDownX === event.clientX && mouseDownY === event.clientY)) {
-            clickCallback(event.point.x, event.point.y, event.point.z);
+            callback('pointerPosition', {x: event.point.x, y: event.point.y, z: event.point.z});
+            callback('pointerVisible', true);
         }
         setState({
             mouseDownX: 0,

@@ -5,7 +5,7 @@ import Hub from "./Hub";
 export default function App() {
 
     return (
-        <Canvas mode="concurrent" frameloop="demand" pixelRatio={window.devicePixelRatio}>
+        <Canvas pixelRatio={window.devicePixelRatio}>
             <Suspense fallback={null} >
                 <Hub />
             </Suspense >

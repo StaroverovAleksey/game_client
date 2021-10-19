@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import * as THREE from "three";
 import {useFrame} from "@react-three/fiber";
 import {
@@ -10,49 +10,61 @@ import {
     AVATAR_WIDTH
 } from "../utils/constants";
 
-const geometry = <boxBufferGeometry args={[AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_DEPTH]} />;
-const material = <meshStandardMaterial color={'red'} />;
-
-
-export default function Avatar({terrain, callback, pointerVisible, pointerX, pointerZ}) {
+export default function Avatar({terrain, pointerVisible, pointerPosition, callback}) {
     const rayCaster = new THREE.Raycaster();
 
     const ref = useRef();
     const [state, setState] = useState({
         startY: 0,
-        moveRatio: 0
+        moveRatio: []
     });
+
+    const geometry = useMemo(() => <boxBufferGeometry args={[AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_DEPTH]}/>, []);
+    const material = useMemo(() => <meshStandardMaterial color={'red'} />, []);
+
+    useEffect(() => {
+        callback('avatarRef', ref);
+    }, [ref]);
 
     /***Первоначальное определение позиции Y на старте*/
     useEffect(() => {
-        setState((prevState) => {
-            console.log(prevState);
-                return {
-                    ...prevState, startY: getZPosition()
-                }
-            }
-        );
+        const startY = getZPosition();
+        setState((prevState) => ({...prevState, startY}));
     }, [terrain]);
 
     /***Определение соотношения */
     useEffect(() => {
-        if (pointerX && pointerZ) {
+        if (pointerVisible) {
             const {x, z} = ref.current.position;
+            const {x: pointerX, z: pointerZ} = pointerPosition;
             const [normX, normZ] = normalize(pointerX - x, pointerZ - z);
-            //console.log(normX, normZ)
             setState((prevState) => ({
                 ...prevState, moveRatio: [normX, normZ]
             }));
         }
-    }, [pointerX, pointerZ]);
+    }, [pointerPosition]);
 
     useFrame((rootState, time) => {
         const {moveRatio} = state;
 
-        if (pointerVisible && moveRatio) {
-            ref.current.position.x += time * moveRatio[0] * AVATAR_SPEED;
-            ref.current.position.z += time * moveRatio[1] * AVATAR_SPEED;
-            ref.current.position.y = getZPosition() + AVATAR_HEIGHT / 2
+        if (pointerVisible && moveRatio.length) {
+            const {x: pointerX, z: pointerZ} = pointerPosition;
+            const x = ref.current.position.x + time * moveRatio[0] * AVATAR_SPEED;
+            const y = getZPosition() + AVATAR_HEIGHT / 2
+            const z = ref.current.position.z + time * moveRatio[1] * AVATAR_SPEED;
+            ref.current.position.x = x;
+            ref.current.position.y = y;
+            ref.current.position.z = z;
+            callback('avatar', {x, y, z});
+
+            if (Math.abs(Math.abs(pointerX) - Math.abs(x)) <= 0.3 && Math.abs(Math.abs(pointerZ) - Math.abs(z)) <= 0.3) {
+                callback('pointerPosition', {x: 0, y: 0, z: 0});
+                callback('pointerVisible', false);
+                setState((prevState) => ({
+                    ...prevState, moveRatio: []
+                }));
+            }
+
         }
     });
 
@@ -68,22 +80,14 @@ export default function Avatar({terrain, callback, pointerVisible, pointerX, poi
         }
     }
 
-
     const getZPosition = () => {
         const {x, z} = ref.current.position;
         const rayOrigin = new THREE.Vector3(x, 100, z);
         const rayDirection = new THREE.Vector3(0, -1, 0);
         rayCaster.set(rayOrigin, rayDirection);
-        if (terrain && terrain.current) {
-            const intersect = rayCaster.intersectObject(terrain.current);
-            const y = intersect.length ? intersect[0].point.y : ref.current.position.y;
-            callback(x, y, z);
-            return y;
-        } else {
-            return ref.current.position.y;
-        }
+        const intersect = rayCaster.intersectObject(terrain);
+        return intersect.length ? intersect[0].point.y : ref.current.position.y;
     }
-
 
     return (
         <mesh
