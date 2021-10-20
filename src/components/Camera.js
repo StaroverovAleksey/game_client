@@ -10,8 +10,14 @@ export default function Camera({avatar, callback}) {
         callback('cameraRef', ref);
     }, [ref]);
 
-    useFrame((rootState, time) => {
+    useEffect((q) => {
+        console.log(q)
+    }, [avatar.position.x, avatar.position.y, avatar.position.z])
 
+    useFrame((rootState, time) => {
+       //ref.current.position.x += 0.1
+        //ref.current.position.y += avatar.position.y
+        //ref.current.position.z += avatar.position.z
     })
 
     return (
@@ -23,7 +29,7 @@ export default function Camera({avatar, callback}) {
                 far={10000}
                 makeDefault
             />
-            <OrbitControls screenSpacePanning={false} target={[avatar.position.x, avatar.position.y + AVATAR_HEIGHT, avatar.position.z]} />
+            <OrbitControls screenSpacePanning={false} target={[avatar.position.x, avatar.position.y + AVATAR_HEIGHT, avatar.position.z]}/>
         </>
     );
 }

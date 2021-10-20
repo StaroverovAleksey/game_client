@@ -2,7 +2,6 @@ import React, { Component } from 'react'
 import Terrain from "./Terrain";
 import Avatar from "./Avatar";
 import Pointer from "./Pointer";
-import Camera from "./Camera";
 
 
 export default class Hub extends Component {
@@ -18,7 +17,7 @@ export default class Hub extends Component {
     }
 
     render() {
-        const {terrainRef, avatarRef, pointerRef, pointerVisible, pointerPosition} = this.state;
+        const {terrainRef, pointerVisible, pointerPosition} = this.state;
         return (
             <>
                 {/***Свет*/}
@@ -36,12 +35,6 @@ export default class Hub extends Component {
                         pointerPosition={pointerPosition}
                         callback={this.stateCallback}
                     />
-                    : null
-                }
-
-                {/***Камера*/}
-                {avatarRef && avatarRef.current
-                    ? <Camera avatar={avatarRef.current} callback={this.stateCallback}/>
                     : null
                 }
 
