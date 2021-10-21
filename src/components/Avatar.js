@@ -26,6 +26,7 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
     const avatarRef = useRef();
     const cameraRef = useRef();
     const controlRef = useRef();
+    const [deltaMove, setDeltaMove] = useState([]);
     const [moveRatio, setMoveRatio] = useState([]);
 
     const startY = useMemo(getZPosition, []);
@@ -40,14 +41,67 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
         if (pointerVisible) {
             const {x, z} = avatarRef.current.position;
             const {x: pointerX, z: pointerZ} = pointerPosition;
+            const deltaX = pointerX - x;
+            const deltaZ = pointerZ - z;
+            const distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+            setDeltaMove([deltaX, deltaZ]);
             const [normX, normZ] = normalize(pointerX - x, pointerZ - z);
-            setMoveRatio([normX, normZ]);
+            //console.log(new Date().getTime())
+            //console.log(distance / AVATAR_SPEED)
+            //console.log((new Date().getTime() + distance / AVATAR_SPEED) * 1000)
+            setMoveRatio([normX, normZ])
+            //setMoveRatio([normX, normZ]);
         }
     }, [pointerPosition]);
 
     useFrame((rootState, time) => {
 
-        if (pointerVisible && moveRatio.length) {
+
+        //console.log(stopMoveTime === 0)
+
+        if (pointerVisible && moveRatio.length /*&& (rootState.clock.elapsedTime < stopMoveTime || stopMoveTime === 0)*/) {
+            const {x: pointerX, z: pointerZ} = pointerPosition;
+
+            if (deltaMove[0] > 0 && deltaMove[1] > 0) {
+                if (pointerX <= avatarRef.current.position.x && pointerZ <= avatarRef.current.position.z) {
+                    avatarRef.current.position.x = pointerX;
+                    avatarRef.current.position.z = pointerZ;
+                    callback('pointerPosition', {x: 0, y: 0, z: 0});
+                    callback('pointerVisible', false);
+                    setMoveRatio([]);
+                    return
+                }
+            }
+            if (deltaMove[0] > 0 && deltaMove[1] < 0) {
+                if (pointerX <= avatarRef.current.position.x && pointerZ >= avatarRef.current.position.z) {
+                    avatarRef.current.position.x = pointerX;
+                    avatarRef.current.position.z = pointerZ;
+                    callback('pointerPosition', {x: 0, y: 0, z: 0});
+                    callback('pointerVisible', false);
+                    setMoveRatio([]);
+                }
+            }
+            if (deltaMove[0] < 0 && deltaMove[1] > 0) {
+                if (pointerX >= avatarRef.current.position.x && pointerZ <= avatarRef.current.position.z) {
+                    avatarRef.current.position.x = pointerX;
+                    avatarRef.current.position.z = pointerZ;
+                    callback('pointerPosition', {x: 0, y: 0, z: 0});
+                    callback('pointerVisible', false);
+                    setMoveRatio([]);
+                }
+            }
+            if (deltaMove[0] < 0 && deltaMove[1] < 0) {
+                if (pointerX >= avatarRef.current.position.x && pointerZ >= avatarRef.current.position.z) {
+                    avatarRef.current.position.x = pointerX;
+                    avatarRef.current.position.z = pointerZ;
+                    callback('pointerPosition', {x: 0, y: 0, z: 0});
+                    callback('pointerVisible', false);
+                    setMoveRatio([]);
+                }
+            }
+
+            //console.log('AAAAAA', rootState.clock.elapsedTime);
+            //console.log('SSSSSS', new Date().getTime());
             const deltaX = time * moveRatio[0] * AVATAR_SPEED;
             const deltaZ = time * moveRatio[1] * AVATAR_SPEED;
 
@@ -67,14 +121,37 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
             controlRef.current.target.y += deltaY;
             controlRef.current.target.z += deltaZ;
 
-            /*if (Math.abs(Math.abs(pointerX) - Math.abs(x)) <= 0.3 && Math.abs(Math.abs(pointerZ) - Math.abs(z)) <= 0.3) {
+            /*if (Math.abs(Math.abs(pointerX) - Math.abs(cameraRef.current.position.x)) <= 0.3 && Math.abs(Math.abs(pointerZ) - Math.abs(cameraRef.current.position.z)) <= 0.3) {
                 callback('pointerPosition', {x: 0, y: 0, z: 0});
                 callback('pointerVisible', false);
                 setMoveRatio([]);
             }*/
 
-        } else {
-        }
+            console.log(pointerX, avatarRef.current.position.x);
+
+
+           /* if (Math.abs(Math.abs(pointerX) - Math.abs(avatarRef.current.position.x)) <= 0.3 && Math.abs(Math.abs(pointerZ) - Math.abs(avatarRef.current.position.z)) <= 0.3) {
+                callback('pointerPosition', {x: 0, y: 0, z: 0});
+                callback('pointerVisible', false);
+                setMoveRatio([]);
+            }*/
+
+            /*if (!stopMoveTime) {
+                console.log(111)
+                const {x, z} = avatarRef.current.position;
+                const {x: pointerX, z: pointerZ} = pointerPosition;
+                const deltaX = Math.abs(pointerX - x);
+                const deltaZ = Math.abs(pointerZ - z);
+                const distance = Math.sqrt((deltaX * deltaX) + (deltaZ * deltaZ));
+                setStopMoveTime(rootState.clock.elapsedTime + (distance / (AVATAR_SPEED / Math.abs(moveRatio[1] < moveRatio[0] ? moveRatio[1] : moveRatio[0]))));
+                //setState({stopMoveTime: new Date().getTime() + (distance / AVATAR_SPEED * 1000), moveRatio: [normX, normZ]})
+            }*/
+
+        } /*else if (stopMoveTime && rootState.clock.elapsedTime >= stopMoveTime) {
+            setStopMoveTime(0);
+            callback('pointerPosition', {x: 0, y: 0, z: 0});
+            callback('pointerVisible', false);
+        }*/
     });
 
     const normalize = (x, z) => {
