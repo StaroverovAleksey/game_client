@@ -11,38 +11,40 @@ export default class Hub extends Component {
             terrainRef: null,
             avatarRef: null,
             pointerRef: null,
-            pointerVisible: false,
             pointerPosition: {x: 0, y: 0, z: 0}
         }
     }
 
     render() {
-        const {terrainRef, pointerVisible, pointerPosition} = this.state;
+        const {terrainRef, pointerRef, pointerPosition} = this.state;
         return (
             <>
                 {/***Свет*/}
                 <ambientLight color={0xffffff} intensity={0.8} />
                 <directionalLight position={[10, 10, 10]} color={0xffffff} intensity={1} />
 
+                {/***Указатель пути для персонажа*/}
+                <Pointer pointerPosition={pointerPosition}
+                         callback={this.stateCallback}/>
+
                 {/***Террейн*/}
-                <Terrain callback={this.stateCallback}/>
+                {pointerRef && pointerRef.current
+                    ? <Terrain callback={this.stateCallback}
+                               pointer={pointerRef.current}/>
+                    : null
+                }
+
 
                 {/***Персонаж*/}
                 {terrainRef && terrainRef.current
-                    ? <Avatar
-                        terrain={terrainRef.current}
-                        pointerVisible={pointerVisible}
-                        pointerPosition={pointerPosition}
-                        callback={this.stateCallback}
-                    />
+                    ? <Avatar terrain={terrainRef.current}
+                              pointer={pointerRef.current}
+                              pointerPosition={pointerPosition}
+                              callback={this.stateCallback}/>
                     : null
                 }
 
-                {/***Указатель пути для персонажа*/}
-                {pointerVisible
-                    ? <Pointer pointerPosition={pointerPosition}/>
-                    : null
-                }
+
             </>
         )
     }

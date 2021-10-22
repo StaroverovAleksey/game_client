@@ -11,7 +11,7 @@ import {
 } from "../utils/constants";
 import {OrbitControls, PerspectiveCamera} from "@react-three/drei";
 
-export default function Avatar({terrain, pointerVisible, pointerPosition, callback}) {
+export default function Avatar({terrain, pointer, pointerPosition, callback}) {
     const rayCaster = new THREE.Raycaster();
 
     const getZPosition = () => {
@@ -28,6 +28,7 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
     const controlRef = useRef();
     const [deltaMove, setDeltaMove] = useState([]);
     const [moveRatio, setMoveRatio] = useState([]);
+    const [cameraPosition, setCameraPosition] = useState({x: 0, y: 0, z: 0});
 
     const startY = useMemo(getZPosition, []);
     const geometry = useMemo(() => <boxBufferGeometry args={[AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_DEPTH]}/>, []);
@@ -38,72 +39,51 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
     }, [avatarRef]);
 
     useEffect(() => {
-        if (pointerVisible) {
-            const {x, z} = avatarRef.current.position;
+        if (pointer.visible) {
+            const {x: avatarX, z: avatarZ} = avatarRef.current.position;
             const {x: pointerX, z: pointerZ} = pointerPosition;
-            const deltaX = pointerX - x;
-            const deltaZ = pointerZ - z;
-            const distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+            const deltaX = pointerX - avatarX;
+            const deltaZ = pointerZ - avatarZ;
+            const [normX, normZ] = normalize(deltaX, deltaZ);
             setDeltaMove([deltaX, deltaZ]);
-            const [normX, normZ] = normalize(pointerX - x, pointerZ - z);
-            //console.log(new Date().getTime())
-            //console.log(distance / AVATAR_SPEED)
-            //console.log((new Date().getTime() + distance / AVATAR_SPEED) * 1000)
             setMoveRatio([normX, normZ])
-            //setMoveRatio([normX, normZ]);
         }
     }, [pointerPosition]);
 
     useFrame((rootState, time) => {
 
+        const {x: cameraX, y: cameraY, z: cameraZ} = cameraRef.current.position;
+        const rayOrigin = new THREE.Vector3(cameraX, cameraY, cameraZ);
+        const rayDirection = new THREE.Vector3(0, -1, 0);
+        rayCaster.set(rayOrigin, rayDirection);
+        const intersect = rayCaster.intersectObject(terrain);
+        if (!intersect.length || intersect.length && intersect[0].distance < 1) {
+            cameraRef.current.position.set(q.x, q.y, q.z)
+        } else {
+            q.x = cameraX;
+            q.y = cameraY;
+            q.z = cameraZ;
+            //setCameraPosition({x: cameraX, y: cameraY, z: cameraZ});
+        }
 
-        //console.log(stopMoveTime === 0)
-
-        if (pointerVisible && moveRatio.length /*&& (rootState.clock.elapsedTime < stopMoveTime || stopMoveTime === 0)*/) {
+        if (pointer.visible && moveRatio.length) {
+            const {x: avatarX, z: avatarZ} = avatarRef.current.position;
             const {x: pointerX, z: pointerZ} = pointerPosition;
 
-            if (deltaMove[0] > 0 && deltaMove[1] > 0) {
-                if (pointerX <= avatarRef.current.position.x && pointerZ <= avatarRef.current.position.z) {
-                    avatarRef.current.position.x = pointerX;
-                    avatarRef.current.position.z = pointerZ;
-                    callback('pointerPosition', {x: 0, y: 0, z: 0});
-                    callback('pointerVisible', false);
-                    setMoveRatio([]);
-                    return
-                }
-            }
-            if (deltaMove[0] > 0 && deltaMove[1] < 0) {
-                if (pointerX <= avatarRef.current.position.x && pointerZ >= avatarRef.current.position.z) {
-                    avatarRef.current.position.x = pointerX;
-                    avatarRef.current.position.z = pointerZ;
-                    callback('pointerPosition', {x: 0, y: 0, z: 0});
-                    callback('pointerVisible', false);
-                    setMoveRatio([]);
-                }
-            }
-            if (deltaMove[0] < 0 && deltaMove[1] > 0) {
-                if (pointerX >= avatarRef.current.position.x && pointerZ <= avatarRef.current.position.z) {
-                    avatarRef.current.position.x = pointerX;
-                    avatarRef.current.position.z = pointerZ;
-                    callback('pointerPosition', {x: 0, y: 0, z: 0});
-                    callback('pointerVisible', false);
-                    setMoveRatio([]);
-                }
-            }
-            if (deltaMove[0] < 0 && deltaMove[1] < 0) {
-                if (pointerX >= avatarRef.current.position.x && pointerZ >= avatarRef.current.position.z) {
-                    avatarRef.current.position.x = pointerX;
-                    avatarRef.current.position.z = pointerZ;
-                    callback('pointerPosition', {x: 0, y: 0, z: 0});
-                    callback('pointerVisible', false);
-                    setMoveRatio([]);
-                }
-            }
+            let deltaX = time * moveRatio[0] * AVATAR_SPEED;
+            let deltaZ = time * moveRatio[1] * AVATAR_SPEED;
 
-            //console.log('AAAAAA', rootState.clock.elapsedTime);
-            //console.log('SSSSSS', new Date().getTime());
-            const deltaX = time * moveRatio[0] * AVATAR_SPEED;
-            const deltaZ = time * moveRatio[1] * AVATAR_SPEED;
+            if (
+                   (deltaMove[0] > 0 && deltaMove[1] > 0) && (avatarX + deltaX > pointerX || avatarZ + deltaZ > pointerZ)
+                || (deltaMove[0] > 0 && deltaMove[1] < 0) && (avatarX + deltaX > pointerX || avatarZ + deltaZ < pointerZ)
+                || (deltaMove[0] < 0 && deltaMove[1] > 0) && (avatarX + deltaX < pointerX || avatarZ + deltaZ > pointerZ)
+                || (deltaMove[0] < 0 && deltaMove[1] < 0) && (avatarX + deltaX < pointerX || avatarZ + deltaZ < pointerZ)
+            ) {
+                deltaX = pointerX - avatarX;
+                deltaZ = pointerZ - avatarZ;
+                pointer.visible = false;
+                setMoveRatio([]);
+            }
 
             avatarRef.current.position.x += deltaX;
             avatarRef.current.position.z += deltaZ;
@@ -120,38 +100,7 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
             controlRef.current.target.x += deltaX;
             controlRef.current.target.y += deltaY;
             controlRef.current.target.z += deltaZ;
-
-            /*if (Math.abs(Math.abs(pointerX) - Math.abs(cameraRef.current.position.x)) <= 0.3 && Math.abs(Math.abs(pointerZ) - Math.abs(cameraRef.current.position.z)) <= 0.3) {
-                callback('pointerPosition', {x: 0, y: 0, z: 0});
-                callback('pointerVisible', false);
-                setMoveRatio([]);
-            }*/
-
-            console.log(pointerX, avatarRef.current.position.x);
-
-
-           /* if (Math.abs(Math.abs(pointerX) - Math.abs(avatarRef.current.position.x)) <= 0.3 && Math.abs(Math.abs(pointerZ) - Math.abs(avatarRef.current.position.z)) <= 0.3) {
-                callback('pointerPosition', {x: 0, y: 0, z: 0});
-                callback('pointerVisible', false);
-                setMoveRatio([]);
-            }*/
-
-            /*if (!stopMoveTime) {
-                console.log(111)
-                const {x, z} = avatarRef.current.position;
-                const {x: pointerX, z: pointerZ} = pointerPosition;
-                const deltaX = Math.abs(pointerX - x);
-                const deltaZ = Math.abs(pointerZ - z);
-                const distance = Math.sqrt((deltaX * deltaX) + (deltaZ * deltaZ));
-                setStopMoveTime(rootState.clock.elapsedTime + (distance / (AVATAR_SPEED / Math.abs(moveRatio[1] < moveRatio[0] ? moveRatio[1] : moveRatio[0]))));
-                //setState({stopMoveTime: new Date().getTime() + (distance / AVATAR_SPEED * 1000), moveRatio: [normX, normZ]})
-            }*/
-
-        } /*else if (stopMoveTime && rootState.clock.elapsedTime >= stopMoveTime) {
-            setStopMoveTime(0);
-            callback('pointerPosition', {x: 0, y: 0, z: 0});
-            callback('pointerVisible', false);
-        }*/
+        }
     });
 
     const normalize = (x, z) => {
@@ -164,6 +113,27 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
         } else {
             return [signX, absZ / absX * signZ];
         }
+    }
+
+    const q = {x: 0, y: 0, z: 0};
+    const onChangeHandler = (event) => {
+        console.log(1111)
+        const {x: cameraX, y: cameraY, z: cameraZ} = cameraRef.current.position;
+        const rayOrigin = new THREE.Vector3(cameraX, cameraY, cameraZ);
+        const rayDirection = new THREE.Vector3(0, -1, 0);
+        rayCaster.set(rayOrigin, rayDirection);
+        const intersect = rayCaster.intersectObject(terrain);
+        if (!intersect.length) {
+            cameraRef.current.position.set(q.x, q.y, q.z)
+        } else {
+            q.x = cameraX;
+            q.y = cameraY;
+            q.z = cameraZ;
+            //setCameraPosition({x: cameraX, y: cameraY, z: cameraZ});
+        }
+
+        //setCameraPosition({x: cameraX, y: cameraY, z: cameraZ});
+        //console.log(intersect[0].distance);
     }
 
     return (
@@ -184,6 +154,7 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
             ? <OrbitControls
                     ref={controlRef}
                     enableDamping={false}
+                    minDistance={3}
                     maxDistance={100}
                     rotateSpeed={0.5}
                     mouseButtons ={{
@@ -191,7 +162,8 @@ export default function Avatar({terrain, pointerVisible, pointerPosition, callba
                         MIDDLE: THREE.MOUSE.DOLLY,
                         RIGHT: THREE.MOUSE.ROTATE
                     }}
-                    target={[avatarRef.current.position.x, avatarRef.current.position.y + AVATAR_HEIGHT, avatarRef.current.position.z]}
+                    target={[avatarRef.current.position.x, avatarRef.current.position.y, avatarRef.current.position.z]}
+                    //onChange={onChangeHandler}
                 />
             :null}
         </>
