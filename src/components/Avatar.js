@@ -12,9 +12,10 @@ import {
 import {OrbitControls, PerspectiveCamera} from "@react-three/drei";
 
 export default function Avatar({terrain, pointer, pointerPosition, callback}) {
+    const rayCaster = new THREE.Raycaster();
+    let vector3 = new THREE.Vector3();
 
     const getZPosition = () => {
-        const rayCaster = new THREE.Raycaster();
         const {x, z} = avatarRef && avatarRef.current ? avatarRef.current.position : {AVATAR_START_X, AVATAR_START_Z};
         const rayOrigin = new THREE.Vector3(x, 100, z);
         const rayDirection = new THREE.Vector3(0, -1, 0);
@@ -28,7 +29,6 @@ export default function Avatar({terrain, pointer, pointerPosition, callback}) {
     const controlRef = useRef();
     const [deltaMove, setDeltaMove] = useState([]);
     const [moveRatio, setMoveRatio] = useState([]);
-    const [cameraPosition, setCameraPosition] = useState({x: 0, y: 0, z: 0});
 
     const startY = useMemo(getZPosition, []);
     const geometry = useMemo(() => <boxBufferGeometry args={[AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_DEPTH]}/>, []);
@@ -52,8 +52,6 @@ export default function Avatar({terrain, pointer, pointerPosition, callback}) {
 
     useFrame((rootState, time) => {
 
-        controlRef.current.update()
-
         if (pointer.visible && moveRatio.length) {
             const {x: avatarX, z: avatarZ} = avatarRef.current.position;
             const {x: pointerX, z: pointerZ} = pointerPosition;
@@ -70,7 +68,8 @@ export default function Avatar({terrain, pointer, pointerPosition, callback}) {
                 deltaX = pointerX - avatarX;
                 deltaZ = pointerZ - avatarZ;
                 pointer.visible = false;
-                setMoveRatio([]);
+                //setMoveRatio([]);
+                //setDeltaMove([]);
             }
 
             avatarRef.current.position.x += deltaX;
@@ -103,38 +102,33 @@ export default function Avatar({terrain, pointer, pointerPosition, callback}) {
         }
     }
 
-
     const onChangeHandler = (event) => {
-        const raycaster = new THREE.Raycaster();
-        let dir = new THREE.Vector3();
-        let intersects = [];
+        /*console.log('CAMERA', cameraRef.current.position);
+        console.log('TARGET', controlRef.current.target);
+        console.log('SUB', vector3.subVectors(cameraRef.current.position, controlRef.current.target));
+        console.log('---------------------------------------------');*/
 
-        console.log(controlRef.current)
+        const controlCopy = cameraRef.current.position.clone();
+        const sub = vector3.subVectors(controlCopy, controlRef.current.target);
+        sub.y = sub.y - Math.cos(50);
 
-        //dir.subVectors(cameraRef.current.position, controlRef.current.target).normalize();
-
-        raycaster.set(
+        rayCaster.set(
             controlRef.current.target,
-            dir.subVectors(cameraRef.current.position, controlRef.current.target).normalize()
+            sub.normalize()
         );
-        intersects = raycaster.intersectObject(terrain, false);
+        const intersects = rayCaster.intersectObject(terrain, false);
 
         if (intersects.length > 0) {
-            console.log(222)
 
-            /*if (
-                intersects[0].distance < controlRef.current.target.distanceTo(cameraRef.current.position)
+            if (
+                intersects[0].distance <= controlRef.current.target.distanceTo(cameraRef.current.position)
             ) {
                 //camera.position.copy(intersects[0].point)
-                cameraRef.current.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
-            }*/
+                //cameraRef.current.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
+                cameraRef.current.position.set(intersects[0].point.x, intersects[0].point.y + Math.cos(50), intersects[0].point.z);
+            }
 
-
-
-            //console.log(intersects[0].point)
-            //cameraRef.current.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
-            cameraRef.current.position.copy(intersects[0].point)
-            //console.log(cameraRef.current.position)
+            //cameraRef.current.position.copy(new THREE.Vector3(intersects[0].point.x, intersects[0].point.y + Math.cos(50), intersects[0].point.z))
         }
     }
 
